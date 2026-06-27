@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ฝึกฮิระงะนะ a–n</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: #ddd9d2;
+    --text: #1a1a18;
+    --text2: #6b6863;
+    --accent: #2563eb;
+    --accent-bg: #eff6ff;
+    --accent-border: #93c5fd;
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --success-border: #86efac;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --danger-border: #fca5a5;
+    --radius: 10px;
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 600; text-align: center; padding: 1.25rem 1rem 0; color: var(--text); }
+  .subtitle { text-align: center; font-size: 13px; color: var(--text2); margin-top: 4px; margin-bottom: 1rem; }
+
+  .tabs { display: flex; gap: 6px; padding: 0 1rem; max-width: 680px; margin: 0 auto 1.25rem; }
+  .tab { flex: 1; padding: 9px 4px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text2); cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+  .screen { display: none; max-width: 680px; margin: 0 auto; padding: 0 1rem 2rem; }
+  .screen.active { display: block; }
+
+  /* Browse */
+  .kana-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+  .kana-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 6px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .kana-card:hover { border-color: var(--accent-border); background: var(--accent-bg); }
+  .kana-card img { width: 60px; height: 60px; object-fit: contain; display: block; margin: 0 auto 4px; }
+  .kana-card .roma { font-size: 13px; color: var(--text2); font-weight: 500; }
+
+  /* Big card modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+  .overlay.open { display: flex; }
+  .big-card { background: var(--surface); border-radius: 16px; padding: 2rem; text-align: center; max-width: 320px; width: 90%; position: relative; }
+  .big-card img { width: 160px; height: 160px; object-fit: contain; display: block; margin: 0 auto 1rem; cursor: pointer; }
+  .big-card .answer { font-size: 28px; font-weight: 600; color: var(--accent); min-height: 40px; transition: opacity 0.2s; }
+  .hint { font-size: 12px; color: var(--text2); margin-top: 6px; }
+  .close-btn { position: absolute; top: 10px; right: 12px; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text2); line-height: 1; }
+  .nav-btns { display: flex; gap: 8px; justify-content: center; margin-top: 1rem; }
+  .nav-btn { padding: 8px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); cursor: pointer; font-size: 14px; color: var(--text); }
+  .nav-btn:hover { background: var(--border); }
+
+  /* Match */
+  .start-btn { display: block; width: 100%; padding: 12px; border: none; border-radius: var(--radius); background: var(--accent); color: #fff; cursor: pointer; font-size: 15px; font-weight: 500; margin-bottom: 1.25rem; transition: opacity 0.15s; }
+  .start-btn:hover { opacity: 0.9; }
+  .match-status { font-size: 13px; color: var(--text2); margin-bottom: 1rem; text-align: center; min-height: 20px; }
+  .match-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .col-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .match-col { display: flex; flex-direction: column; gap: 7px; }
+  .match-item { padding: 10px 8px; border: 1px solid var(--border); border-radius: var(--radius); text-align: center; cursor: pointer; background: var(--surface); transition: all 0.15s; }
+  .match-item img { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto; }
+  .match-item.roma-item { font-size: 16px; font-weight: 600; color: var(--text); }
+  .match-item:hover:not(.matched):not(.selected) { border-color: var(--accent-border); background: var(--accent-bg); }
+  .match-item.selected { border-color: var(--accent); background: var(--accent-bg); }
+  .match-item.matched { border-color: var(--success-border); background: var(--success-bg); cursor: default; }
+  .match-item.wrong { border-color: var(--danger-border); background: var(--danger-bg); animation: shake 0.3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+  /* Quiz */
+  .score-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+  .score-text { font-size: 13px; color: var(--text2); white-space: nowrap; }
+  .progress-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+  .quiz-center { text-align: center; }
+  .quiz-img { width: 140px; height: 140px; object-fit: contain; margin: 0 auto 1.25rem; display: block; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); padding: 8px; }
+  .quiz-prompt { font-size: 14px; color: var(--text2); margin-bottom: 1rem; }
+  .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .quiz-opt { padding: 13px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; font-size: 17px; font-weight: 600; color: var(--text); transition: all 0.15s; }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--accent-border); background: var(--accent-bg); color: var(--accent); }
+  .quiz-opt.correct { border-color: var(--success-border); background: var(--success-bg); color: var(--success); }
+  .quiz-opt.wrong { border-color: var(--danger-border); background: var(--danger-bg); color: var(--danger); }
+  .result-box { background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 16px; padding: 2rem; text-align: center; }
+  .result-box h2 { font-size: 22px; font-weight: 600; color: var(--success); }
+  .result-box p { color: var(--success); margin-top: 6px; font-size: 15px; }
+  .result-box button { margin-top: 1.25rem; padding: 10px 28px; border: none; border-radius: var(--radius); background: var(--success); color: #fff; cursor: pointer; font-size: 15px; font-weight: 500; }
+  .section-head { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 1rem; }
+
+  /* Speaking */
+  .speak-toolbar { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+  .speak-toolbar button { flex: 1; padding: 10px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+  .speak-toolbar button:hover { background: var(--surface2); }
+  .speak-counter { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; font-size: 13px; color: var(--text2); }
+  .speak-score { display: flex; gap: 12px; }
+  .speak-score .s-ok { color: var(--success); font-weight: 600; }
+  .speak-score .s-no { color: var(--danger); font-weight: 600; }
+  .deck-wrap { position: relative; height: 280px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+  .deck-shadow { position: absolute; width: 220px; height: 240px; border-radius: 16px; background: var(--border); top: 8px; left: 50%; transform: translateX(-50%); }
+  .deck-shadow2 { position: absolute; width: 220px; height: 240px; border-radius: 16px; background: var(--surface2); top: 4px; left: 50%; transform: translateX(-50%); }
+  .sp-card { position: relative; z-index: 2; width: 220px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem 1.5rem; text-align: center; cursor: pointer; user-select: none; transition: transform 0.15s, box-shadow 0.15s; }
+  .sp-card:hover { transform: translateY(-3px); }
+  .sp-card img { width: 150px; height: 150px; object-fit: contain; display: block; margin: 0 auto; }
+  .sp-answer { margin-top: 1rem; min-height: 52px; border-top: 1px solid var(--border); padding-top: 0.75rem; }
+  .sp-answer .roma-text { font-size: 32px; font-weight: 700; color: var(--accent); opacity: 0; transition: opacity 0.2s; }
+  .sp-answer .roma-text.show { opacity: 1; }
+  .sp-answer .kana-text { font-size: 16px; color: var(--text2); margin-top: 2px; opacity: 0; transition: opacity 0.2s; }
+  .sp-answer .kana-text.show { opacity: 1; }
+  .sp-hint { font-size: 12px; color: var(--text2); text-align: center; margin-bottom: 1rem; min-height: 18px; }
+  .judge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .judge-row button { padding: 14px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 16px; font-weight: 600; transition: opacity 0.15s; }
+  .btn-pass { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+  .btn-pass:hover { opacity: 0.8; }
+  .btn-fail { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+  .btn-fail:hover { opacity: 0.8; }
+  .judge-row button:disabled { opacity: 0.35; cursor: default; }
+  .sp-done { background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 16px; padding: 2rem; text-align: center; }
+  .sp-done h2 { font-size: 22px; font-weight: 600; color: var(--success); }
+  .sp-done p { color: var(--text2); margin-top: 6px; font-size: 15px; }
+  .sp-done button { margin-top: 1rem; padding: 10px 24px; border: none; border-radius: var(--radius); background: var(--success); color: #fff; cursor: pointer; font-size: 15px; }
+  .slide-out { animation: slideOut 0.25s ease forwards; }
+  @keyframes slideOut { to { transform: translateX(120%) rotate(8deg); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<h1>ฝึกฮิระงะนะ</h1>
+<p class="subtitle">ตัวอักษรญี่ปุ่น a–n ทั้ง 46 ตัว</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="showScreen('browse',this)">การ์ดทั้งหมด</button>
+  <button class="tab" onclick="showScreen('speak',this);initSpeak()">อ่านออกเสียง</button>
+  <button class="tab" onclick="showScreen('match',this)">จับคู่</button>
+  <button class="tab" onclick="showScreen('quiz',this)">ทดสอบ</button>
+</div>
+
+<!-- Speaking -->
+<div id="speak" class="screen">
+  <p class="section-head">ฝึกอ่านออกเสียง</p>
+  <div class="speak-toolbar">
+    <button onclick="speakShuffle()">🔀 สุ่มการ์ด</button>
+    <button onclick="speakReset()">↺ เรียงใหม่</button>
+  </div>
+  <div class="speak-counter">
+    <span id="speakCounter">การ์ดที่ 1 / 46</span>
+    <div class="speak-score">
+      <span class="s-ok">✓ <span id="scoreOk">0</span></span>
+      <span class="s-no">✗ <span id="scoreNo">0</span></span>
+    </div>
+  </div>
+  <div class="deck-wrap">
+    <div class="deck-shadow"></div>
+    <div class="deck-shadow2"></div>
+    <div class="sp-card" id="spCard" onclick="spFlip()">
+      <img id="spImg" src="" alt="">
+      <div class="sp-answer">
+        <div class="roma-text" id="spRoma"></div>
+        <div class="kana-text" id="spKana"></div>
+      </div>
+    </div>
+  </div>
+  <p class="sp-hint" id="spHint">คลิกการ์ดเพื่อเปิดเฉลย</p>
+  <div class="judge-row">
+    <button class="btn-pass" id="btnPass" onclick="spJudge(true)" disabled>✓ อ่านถูก</button>
+    <button class="btn-fail" id="btnFail" onclick="spJudge(false)" disabled>✗ อ่านผิด</button>
+  </div>
+</div>
+
+<!-- Browse -->
+<div id="browse" class="screen active">
+  <div class="kana-grid" id="browseGrid"></div>
+</div>
+
+<!-- Big card overlay -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="big-card">
+    <button class="close-btn" onclick="closeOverlayDirect()">✕</button>
+    <img id="bigImg" src="" alt="">
+    <div class="answer" id="bigAnswer" style="opacity:0"></div>
+    <p class="hint" id="bigHint">คลิกภาพเพื่อดูเสียงอ่าน</p>
+    <div class="nav-btns">
+      <button class="nav-btn" onclick="moveBig(-1)">‹ ก่อนหน้า</button>
+      <button class="nav-btn" onclick="moveBig(1)">ถัดไป ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- Match -->
+<div id="match" class="screen">
+  <p class="section-head">เกมจับคู่</p>
+  <button class="start-btn" onclick="startMatch()">เริ่มเกมใหม่</button>
+  <p class="match-status" id="matchStatus">เลือกตัวอักษรแล้วจับคู่กับเสียงอ่าน</p>
+  <div class="match-cols">
+    <div>
+      <div class="col-label">ตัวอักษร</div>
+      <div class="match-col" id="matchKana"></div>
+    </div>
+    <div>
+      <div class="col-label">เสียงอ่าน</div>
+      <div class="match-col" id="matchRoma"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Quiz -->
+<div id="quiz" class="screen">
+  <p class="section-head">ทดสอบความจำ</p>
+  <div class="score-bar">
+    <span class="score-text" id="scoreText">คะแนน: 0/0</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+  <div id="quizBox" class="quiz-center">
+    <button class="start-btn" onclick="startQuiz()">เริ่มทดสอบ (10 ข้อ)</button>
+  </div>
+</div>
+
+<script>
+const HIRAGANA = [
+  {k:'あ',r:'a',  f:'1-a.png'},
+  {k:'い',r:'i',  f:'2-i.png'},
+  {k:'う',r:'u',  f:'3-u.png'},
+  {k:'え',r:'e',  f:'4-e.png'},
+  {k:'お',r:'o',  f:'5-o.png'},
+  {k:'か',r:'ka', f:'6-ka.png'},
+  {k:'き',r:'ki', f:'7-ki.png'},
+  {k:'く',r:'ku', f:'8-ku.png'},
+  {k:'け',r:'ke', f:'9-ke.png'},
+  {k:'こ',r:'ko', f:'10-ko.png'},
+  {k:'さ',r:'sa', f:'11-sa.png'},
+  {k:'し',r:'shi',f:'12-shi.png'},
+  {k:'す',r:'su', f:'13-su.png'},
+  {k:'せ',r:'se', f:'14-se.png'},
+  {k:'そ',r:'so', f:'15-so.png'},
+  {k:'た',r:'ta', f:'16-ta.png'},
+  {k:'ち',r:'chi',f:'17-chi.png'},
+  {k:'つ',r:'tsu',f:'18-tsu.png'},
+  {k:'て',r:'te', f:'19-te.png'},
+  {k:'と',r:'to', f:'20-to.png'},
+  {k:'な',r:'na', f:'21-na.png'},
+  {k:'に',r:'ni', f:'22-ni.png'},
+  {k:'ぬ',r:'nu', f:'23-nu.png'},
+  {k:'ね',r:'ne', f:'24-ne.png'},
+  {k:'の',r:'no', f:'25-no.png'},
+  {k:'は',r:'ha', f:'26-ha.png'},
+  {k:'ひ',r:'hi', f:'27-hi.png'},
+  {k:'ふ',r:'fu', f:'28-fu.png'},
+  {k:'へ',r:'he', f:'29-he.png'},
+  {k:'ほ',r:'ho', f:'30-ho.png'},
+  {k:'ま',r:'ma', f:'31-ma.png'},
+  {k:'み',r:'mi', f:'32-mi.png'},
+  {k:'む',r:'mu', f:'33-mu.png'},
+  {k:'め',r:'me', f:'34-me.png'},
+  {k:'も',r:'mo', f:'35-mo.png'},
+  {k:'や',r:'ya', f:'36-ya.png'},
+  {k:'ゆ',r:'yu', f:'37-yu.png'},
+  {k:'よ',r:'yo', f:'38-yo.png'},
+  {k:'ら',r:'ra', f:'39-ra.png'},
+  {k:'り',r:'ri', f:'40-ri.png'},
+  {k:'る',r:'ru', f:'41-ru.png'},
+  {k:'れ',r:'re', f:'42-re.png'},
+  {k:'ろ',r:'ro', f:'43-re.png'},
+  {k:'わ',r:'wa', f:'44-wa.png'},
+  {k:'を',r:'wo', f:'45-(w)0.png'},
+  {k:'ん',r:'n',  f:'46-n.png'},
+];
+
+const IMG_DIR = 'Hiragana%20a-n/';
+function img(h){ return IMG_DIR + h.f; }
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+
+// --- Browse ---
+const grid = document.getElementById('browseGrid');
+HIRAGANA.forEach((h,i)=>{
+  const d = document.createElement('div');
+  d.className = 'kana-card';
+  d.innerHTML = `<img src="${img(h)}" alt="${h.k}" loading="lazy"><div class="roma">${h.r}</div>`;
+  d.onclick = ()=>openBig(i);
+  grid.appendChild(d);
+});
+
+let bigIdx=0, bigFlipped=false;
+function openBig(i){
+  bigIdx=i; bigFlipped=false;
+  const h=HIRAGANA[i];
+  document.getElementById('bigImg').src=img(h);
+  document.getElementById('bigImg').alt=h.k;
+  document.getElementById('bigAnswer').textContent=h.r;
+  document.getElementById('bigAnswer').style.opacity='0';
+  document.getElementById('bigHint').textContent='คลิกภาพเพื่อดูเสียงอ่าน';
+  document.getElementById('overlay').classList.add('open');
+}
+document.getElementById('bigImg').onclick=()=>{
+  bigFlipped=!bigFlipped;
+  document.getElementById('bigAnswer').style.opacity=bigFlipped?'1':'0';
+  document.getElementById('bigHint').textContent=bigFlipped?'':'คลิกภาพเพื่อดูเสียงอ่าน';
+};
+function moveBig(dir){ openBig((bigIdx+dir+HIRAGANA.length)%HIRAGANA.length); }
+function closeOverlay(e){ if(e.target===document.getElementById('overlay')) closeOverlayDirect(); }
+function closeOverlayDirect(){ document.getElementById('overlay').classList.remove('open'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeOverlayDirect(); });
+
+// --- Tabs ---
+function showScreen(id,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// --- Speaking (teacher judges) ---
+let spDeck=[...HIRAGANA], spIdx=0, spFlipped=false, spOk=0, spNo=0;
+
+function initSpeak(){
+  spIdx=0; spOk=0; spNo=0; spFlipped=false;
+  spDeck=[...HIRAGANA];
+  renderSp();
+}
+function speakShuffle(){ spDeck=shuffle(HIRAGANA); spIdx=0; spOk=0; spNo=0; spFlipped=false; renderSp(); }
+function speakReset(){ spDeck=[...HIRAGANA]; spIdx=0; spOk=0; spNo=0; spFlipped=false; renderSp(); }
+
+function renderSp(){
+  document.getElementById('scoreOk').textContent=spOk;
+  document.getElementById('scoreNo').textContent=spNo;
+  if(spIdx>=spDeck.length){ showSpDone(); return; }
+  const h=spDeck[spIdx];
+  document.getElementById('speakCounter').textContent=`การ์ดที่ ${spIdx+1} / ${spDeck.length}`;
+  document.getElementById('spImg').src=img(h);
+  document.getElementById('spImg').alt=h.k;
+  document.getElementById('spRoma').textContent=h.r;
+  document.getElementById('spKana').textContent=h.k;
+  document.getElementById('spRoma').classList.remove('show');
+  document.getElementById('spKana').classList.remove('show');
+  document.getElementById('spHint').textContent='คลิกการ์ดเพื่อเปิดเฉลย';
+  document.getElementById('btnPass').disabled=true;
+  document.getElementById('btnFail').disabled=true;
+  document.getElementById('spCard').style.display='';
+  document.getElementById('spCard').classList.remove('slide-out');
+}
+
+function spFlip(){
+  if(spFlipped) return;
+  spFlipped=true;
+  document.getElementById('spRoma').classList.add('show');
+  document.getElementById('spKana').classList.add('show');
+  document.getElementById('spHint').textContent='ครูตัดสิน — นักเรียนอ่านถูกหรือเปล่า?';
+  document.getElementById('btnPass').disabled=false;
+  document.getElementById('btnFail').disabled=false;
+}
+
+function spJudge(pass){
+  if(pass) spOk++; else spNo++;
+  document.getElementById('scoreOk').textContent=spOk;
+  document.getElementById('scoreNo').textContent=spNo;
+  document.getElementById('btnPass').disabled=true;
+  document.getElementById('btnFail').disabled=true;
+  const card=document.getElementById('spCard');
+  card.classList.add('slide-out');
+  setTimeout(()=>{ spIdx++; spFlipped=false; renderSp(); },260);
+}
+
+function showSpDone(){
+  const total=spOk+spNo;
+  const pct=total>0?Math.round((spOk/total)*100):0;
+  document.getElementById('speakCounter').textContent=`จบแล้ว — ทำไปแล้ว ${total} ใบ`;
+  document.getElementById('spCard').style.display='none';
+  document.getElementById('spHint').textContent='';
+  document.getElementById('btnPass').disabled=true;
+  document.getElementById('btnFail').disabled=true;
+  document.querySelector('.deck-wrap').insertAdjacentHTML('afterend',
+    `<div class="sp-done" id="spDoneBox">
+      <h2>ครบทุกใบแล้ว!</h2>
+      <p>อ่านถูก ${spOk} / ${total} ใบ (${pct}%)</p>
+      <button onclick="document.getElementById('spDoneBox').remove();speakReset()">เริ่มใหม่</button>
+    </div>`);
+}
+
+// --- Match ---
+let matchSel=null, matchDone=0, matchTotal=0;
+function startMatch(){
+  matchSel=null; matchDone=0;
+  const pick=shuffle(HIRAGANA).slice(0,8);
+  matchTotal=pick.length;
+  const kCol=document.getElementById('matchKana');
+  const rCol=document.getElementById('matchRoma');
+  kCol.innerHTML=''; rCol.innerHTML='';
+  shuffle(pick).forEach(h=>{
+    const d=document.createElement('div');
+    d.className='match-item'; d.dataset.key=h.r; d.dataset.type='kana';
+    d.innerHTML=`<img src="${img(h)}" alt="${h.k}">`;
+    d.onclick=()=>selectMatch(d);
+    kCol.appendChild(d);
+  });
+  shuffle(pick).forEach(h=>{
+    const d=document.createElement('div');
+    d.className='match-item roma-item'; d.dataset.key=h.r; d.dataset.type='roma';
+    d.textContent=h.r;
+    d.onclick=()=>selectMatch(d);
+    rCol.appendChild(d);
+  });
+  document.getElementById('matchStatus').textContent='เลือกตัวอักษรแล้วจับคู่กับเสียงอ่าน';
+}
+function selectMatch(el){
+  if(el.classList.contains('matched')) return;
+  if(matchSel && matchSel.dataset.type===el.dataset.type){
+    matchSel.classList.remove('selected'); matchSel=el; el.classList.add('selected'); return;
+  }
+  if(!matchSel){ matchSel=el; el.classList.add('selected'); return; }
+  if(matchSel.dataset.key===el.dataset.key){
+    [matchSel,el].forEach(c=>{ c.classList.remove('selected'); c.classList.add('matched'); c.onclick=null; });
+    matchDone++;
+    document.getElementById('matchStatus').textContent=matchDone===matchTotal?'🎉 ครบแล้ว! กดเริ่มใหม่เพื่อเล่นอีกรอบ':`จับคู่แล้ว ${matchDone}/${matchTotal}`;
+    matchSel=null;
+  } else {
+    const prev=matchSel; matchSel=null;
+    [prev,el].forEach(c=>{ c.classList.remove('selected'); c.classList.add('wrong'); });
+    setTimeout(()=>{ [prev,el].forEach(c=>c.classList.remove('wrong')); },600);
+  }
+}
+startMatch();
+
+// --- Quiz ---
+let quizQ=[], quizIdx=0, quizCorrect=0;
+function startQuiz(){
+  quizQ=shuffle(HIRAGANA).slice(0,10); quizIdx=0; quizCorrect=0;
+  updateScore(); renderQ();
+}
+function renderQ(){
+  if(quizIdx>=quizQ.length){ showResult(); return; }
+  const q=quizQ[quizIdx];
+  const wrongs=shuffle(HIRAGANA.filter(h=>h.r!==q.r)).slice(0,3);
+  const opts=shuffle([q,...wrongs]);
+  document.getElementById('quizBox').innerHTML=`
+    <img class="quiz-img" src="${img(q)}" alt="${q.k}">
+    <p class="quiz-prompt">เสียงอ่านของตัวอักษรนี้คืออะไร?</p>
+    <div class="quiz-opts">
+      ${opts.map(o=>`<button class="quiz-opt" onclick="answer(this,'${o.r}','${q.r}')">${o.r}</button>`).join('')}
+    </div>`;
+}
+function answer(btn,chosen,correct){
+  document.querySelectorAll('.quiz-opt').forEach(b=>b.disabled=true);
+  if(chosen===correct){ btn.classList.add('correct'); quizCorrect++; }
+  else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.quiz-opt').forEach(b=>{ if(b.textContent===correct) b.classList.add('correct'); });
+  }
+  quizIdx++; updateScore();
+  setTimeout(renderQ,1000);
+}
+function updateScore(){
+  document.getElementById('scoreText').textContent=`คะแนน: ${quizCorrect}/${quizIdx}`;
+  document.getElementById('progressFill').style.width=`${(quizIdx/(quizQ.length||10))*100}%`;
+}
+function showResult(){
+  const pct=Math.round((quizCorrect/quizQ.length)*100);
+  document.getElementById('quizBox').innerHTML=`
+    <div class="result-box">
+      <h2>ได้ ${quizCorrect}/${quizQ.length} คะแนน (${pct}%)</h2>
+      <p>${pct>=80?'ยอดเยี่ยมมาก! คุณจำตัวอักษรได้ดีมาก 🎉':'ฝึกอีกนิดนะ แล้วลองใหม่อีกครั้ง 💪'}</p>
+      <button onclick="startQuiz()">ทดสอบอีกรอบ</button>
+    </div>`;
+}
+</script>
+</body>
+</html>
