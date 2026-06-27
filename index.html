@@ -328,12 +328,8 @@ function renderSp(){
   const h=spDeck[spIdx];
   const roma=document.getElementById('spRoma');
   const kana=document.getElementById('spKana');
-  // reset inline styles set by spJudge, update content while hidden
-  roma.style.transition='none'; kana.style.transition='none';
-  roma.style.opacity=''; kana.style.opacity='';
   roma.classList.remove('show'); kana.classList.remove('show');
   roma.textContent=h.r; kana.textContent=h.k;
-  requestAnimationFrame(()=>{ roma.style.transition=''; kana.style.transition=''; });
   document.getElementById('speakCounter').textContent=`การ์ดที่ ${spIdx+1} / ${spDeck.length}`;
   document.getElementById('spImg').src=img(h);
   document.getElementById('spImg').alt=h.k;
@@ -360,12 +356,11 @@ function spJudge(pass){
   document.getElementById('scoreNo').textContent=spNo;
   document.getElementById('btnPass').disabled=true;
   document.getElementById('btnFail').disabled=true;
-  // hide answer instantly before slide animation starts
-  const roma=document.getElementById('spRoma');
-  const kana=document.getElementById('spKana');
-  roma.style.transition='none'; kana.style.transition='none';
-  roma.style.opacity='0'; kana.style.opacity='0';
-  roma.classList.remove('show'); kana.classList.remove('show');
+  // clear answer text immediately so it never shows on the next card
+  document.getElementById('spRoma').textContent='';
+  document.getElementById('spKana').textContent='';
+  document.getElementById('spRoma').classList.remove('show');
+  document.getElementById('spKana').classList.remove('show');
   const card=document.getElementById('spCard');
   card.classList.add('slide-out');
   setTimeout(()=>{ spIdx++; spFlipped=false; renderSp(); },260);
